@@ -299,11 +299,15 @@ func (st *StateTransition) buyGas() error {
 
 func (st *StateTransition) preCheck() error {
 	if st.msg.IsDepositTx {
-		// No fee fields to check, no nonce to check, and no need to check if EOA (L1 already verified it for us)
-		// Gas is free, but no refunds!
-		st.initialGas = st.msg.GasLimit
-		st.gasRemaining += st.msg.GasLimit // Add gas here in order to be able to execute calls.
-		// Don't touch the gas pool for system transactions
+		systemAddress := common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
+
+		if st.msg.From == systemAddress {
+			st.initialGas = st.msg.GasLimit
+			st.gasRemaining += st.msg.GasLimit
+
+			return st.gp.SubGas(st.msg.GasLimit)
+		}
+
 		if st.msg.IsSystemTx {
 			if st.evm.ChainConfig().IsOptimismRegolith(st.evm.Context.Time) {
 				return fmt.Errorf("%w: address %v", ErrSystemTxNotSupported,
@@ -311,23 +315,25 @@ func (st *StateTransition) preCheck() error {
 			}
 			return nil
 		}
-		return st.gp.SubGas(st.msg.GasLimit) // gas used by deposits may not be used by other txs
 	}
 	// Only check transactions that are not fake
 	msg := st.msg
 	if !msg.SkipAccountChecks {
-		// Make sure this transaction's nonce is correct.
-		stNonce := st.state.GetNonce(msg.From)
-		if msgNonce := msg.Nonce; stNonce < msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
-				msg.From.Hex(), msgNonce, stNonce)
-		} else if stNonce > msgNonce {
-			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
-				msg.From.Hex(), msgNonce, stNonce)
-		} else if stNonce+1 < stNonce {
-			return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
-				msg.From.Hex(), stNonce)
+		if !st.msg.IsDepositTx {
+			// Make sure this transaction's nonce is correct.
+			stNonce := st.state.GetNonce(msg.From)
+			if msgNonce := msg.Nonce; stNonce < msgNonce {
+				return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
+					msg.From.Hex(), msgNonce, stNonce)
+			} else if stNonce > msgNonce {
+				return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
+					msg.From.Hex(), msgNonce, stNonce)
+			} else if stNonce+1 < stNonce {
+				return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
+					msg.From.Hex(), stNonce)
+			}
 		}
+
 		// Make sure the sender is an EOA
 		codeHash := st.state.GetCodeHash(msg.From)
 		if codeHash != (common.Hash{}) && codeHash != types.EmptyCodeHash {
@@ -426,16 +432,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.RevertToSnapshot(snap)
 		// Even though we revert the state changes, always increment the nonce for the next deposit transaction
 		st.state.SetNonce(st.msg.From, st.state.GetNonce(st.msg.From)+1)
-		// Record deposits as using all their gas (matches the gas pool)
-		// System Transactions are special & are not recorded as using any gas (anywhere)
-		// Regolith changes this behaviour so the actual gas used is reported.
-		// In this case the tx is invalid so is recorded as using all gas.
-		gasUsed := st.msg.GasLimit
-		if st.msg.IsSystemTx && !st.evm.ChainConfig().IsRegolith(st.evm.Context.Time) {
-			gasUsed = 0
-		}
 		result = &ExecutionResult{
-			UsedGas:    gasUsed,
+			UsedGas:    st.gasUsed(),
 			Err:        fmt.Errorf("failed deposit: %w", err),
 			ReturnData: nil,
 		}
