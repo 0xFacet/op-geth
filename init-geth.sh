@@ -30,4 +30,23 @@ else
 fi
 
 # Start geth in server mode without interactive console
-exec geth --datadir /root/ethereum --http --http.addr "0.0.0.0" --http.api "eth,net,web3,debug" --http.vhosts="*" --authrpc.addr "0.0.0.0" --authrpc.vhosts="*" --authrpc.port 8551 --authrpc.jwtsecret /tmp/jwtsecret --nodiscover --cache 25000 --cache.preimages=true --maxpeers 0 --syncmode full --gcmode archive --rollup.disabletxpoolgossip=true
+exec geth \
+  --datadir /root/ethereum \
+  --http \
+  --http.addr "0.0.0.0" \
+  --http.api "eth,net,web3,debug" \
+  --http.vhosts="*" \
+  --authrpc.addr "0.0.0.0" \
+  --authrpc.vhosts="*" \
+  --authrpc.port 8551 \
+  --authrpc.jwtsecret /tmp/jwtsecret \
+  --nodiscover \
+  --cache 25000 \
+  --cache.preimages=true \
+  --maxpeers 0 \
+  --syncmode full \
+  --gcmode archive \
+  --rollup.disabletxpoolgossip=true \
+  --history.state "0" \
+  --history.transactions "0" \
+  
