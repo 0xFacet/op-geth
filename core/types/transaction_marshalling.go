@@ -163,7 +163,6 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		}
 
 	case *DepositTx:
-		enc.ChainID = (*hexutil.Big)(itx.ChainID)
 		enc.Gas = (*hexutil.Uint64)(&itx.Gas)
 		enc.MaxFeePerGas = (*hexutil.Big)(itx.GasFeeCap)
 		enc.Value = (*hexutil.Big)(itx.Value)

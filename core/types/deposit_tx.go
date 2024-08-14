@@ -24,10 +24,9 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-const DepositTxType = 0x46
+const DepositTxType = 0x7E
 
 type DepositTx struct {
-	ChainID *big.Int
 	// SourceHash uniquely identifies the source of the deposit
 	SourceHash common.Hash
 	// From is exposed through the types.Signer, not through TxData
@@ -56,7 +55,6 @@ func (tx *DepositTx) copy() TxData {
 		To:                  copyAddressPtr(tx.To),
 		Mint:                nil,
 		Value:               new(big.Int),
-		ChainID:             tx.ChainID,
 		Gas:                 tx.Gas,
 		GasFeeCap:           tx.GasFeeCap,
 		IsSystemTransaction: tx.IsSystemTransaction,
@@ -73,7 +71,7 @@ func (tx *DepositTx) copy() TxData {
 
 // accessors for innerTx.
 func (tx *DepositTx) txType() byte           { return DepositTxType }
-func (tx *DepositTx) chainID() *big.Int      { return tx.ChainID }
+func (tx *DepositTx) chainID() *big.Int      { return common.Big0 }
 func (tx *DepositTx) accessList() AccessList { return nil }
 func (tx *DepositTx) data() []byte           { return tx.Data }
 func (tx *DepositTx) gas() uint64            { return tx.Gas }
