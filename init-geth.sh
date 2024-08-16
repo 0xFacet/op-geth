@@ -13,18 +13,22 @@ else
   exit 1
 fi
 
-# Update the chainId in genesis3.json with the value of the CHAIN_ID environment variable
-if [ -z "$CHAIN_ID" ]; then
-  echo "CHAIN_ID environment variable is not set"
+# Check if the genesis file is specified
+if [ -z "$GENESIS_FILE" ]; then
+  echo "GENESIS_FILE environment variable is not set"
   exit 1
 fi
 
-jq --arg chainId "$CHAIN_ID" '.config.chainId = ($chainId | tonumber)' /genesis3.json > /tmp/genesis3.json && mv /tmp/genesis3.json /genesis3.json
+# Check if the genesis file exists
+if [ ! -f "/$GENESIS_FILE" ]; then
+  echo "Specified genesis file /$GENESIS_FILE does not exist"
+  exit 1
+fi
 
 # Check if the data directory is empty
 if [ ! "$(ls -A /root/ethereum)" ]; then
   echo "Initializing new blockchain..."
-  geth init --datadir /root/ethereum /genesis3.json
+  geth init --datadir /root/ethereum "/$GENESIS_FILE"
 else
   echo "Blockchain already initialized."
 fi
@@ -48,5 +52,4 @@ exec geth \
   --gcmode archive \
   --rollup.disabletxpoolgossip=true \
   --history.state "0" \
-  --history.transactions "0" \
-  
+  --history.transactions "0"

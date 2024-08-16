@@ -19,11 +19,11 @@ RUN cd /go-ethereum && go run build/ci.go install -static ./cmd/geth
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates jq
+RUN apk add --no-cache ca-certificates
 COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
 
 # Copy the genesis.json file into the container
-COPY facet-chain/genesis3.json /genesis3.json
+COPY facet-chain/*.json /
 
 # Copy the init-geth.sh script into the container
 COPY init-geth.sh /init-geth.sh
