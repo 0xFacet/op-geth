@@ -28,7 +28,7 @@ fi
 # Check if the data directory is empty
 if [ ! "$(ls -A /root/ethereum)" ]; then
   echo "Initializing new blockchain..."
-  geth init --datadir /root/ethereum "/$GENESIS_FILE"
+  geth init --cache.preimages --state.scheme=hash --datadir /root/ethereum "/$GENESIS_FILE"
 else
   echo "Blockchain already initialized."
 fi
@@ -46,10 +46,10 @@ exec geth \
   --authrpc.jwtsecret /tmp/jwtsecret \
   --nodiscover \
   --cache 25000 \
-  --cache.preimages=true \
+  --cache.preimages \
   --maxpeers 0 \
   --syncmode full \
   --gcmode archive \
-  --rollup.disabletxpoolgossip=true \
-  --history.state "0" \
-  --history.transactions "0"
+  --rollup.disabletxpoolgossip \
+  --history.state 0 \
+  --history.transactions 0
