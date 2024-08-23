@@ -435,7 +435,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		remainder := new(uint256.Int).Sub(totalMintAmount, fromAddressMintAmount)
 
 		if remainder.Gt(uint256.NewInt(0)) {
-			st.state.AddBalance(*st.msg.L1TxOrigin, remainder, tracing.BalanceMint)
+			if st.msg.L1TxOrigin != nil {
+				st.state.AddBalance(*st.msg.L1TxOrigin, remainder, tracing.BalanceMint)
+			} else {
+				st.state.AddBalance(st.msg.From, remainder, tracing.BalanceMint)
+			}
 		}
 	}
 
@@ -639,7 +643,12 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
-	st.state.AddBalance(*st.msg.L1TxOrigin, remaining, tracing.BalanceIncreaseGasReturn)
+
+	if st.msg.L1TxOrigin != nil {
+		st.state.AddBalance(*st.msg.L1TxOrigin, remaining, tracing.BalanceIncreaseGasReturn)
+	} else {
+		st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
+	}
 
 	if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnGasChange != nil && st.gasRemaining > 0 {
 		st.evm.Config.Tracer.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxLeftOverReturned)

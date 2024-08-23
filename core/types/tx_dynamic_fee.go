@@ -85,18 +85,19 @@ func (tx *DynamicFeeTx) copy() TxData {
 }
 
 // accessors for innerTx.
-func (tx *DynamicFeeTx) txType() byte           { return DynamicFeeTxType }
-func (tx *DynamicFeeTx) chainID() *big.Int      { return tx.ChainID }
-func (tx *DynamicFeeTx) accessList() AccessList { return tx.AccessList }
-func (tx *DynamicFeeTx) data() []byte           { return tx.Data }
-func (tx *DynamicFeeTx) gas() uint64            { return tx.Gas }
-func (tx *DynamicFeeTx) gasFeeCap() *big.Int    { return tx.GasFeeCap }
-func (tx *DynamicFeeTx) gasTipCap() *big.Int    { return tx.GasTipCap }
-func (tx *DynamicFeeTx) gasPrice() *big.Int     { return tx.GasFeeCap }
-func (tx *DynamicFeeTx) value() *big.Int        { return tx.Value }
-func (tx *DynamicFeeTx) nonce() uint64          { return tx.Nonce }
-func (tx *DynamicFeeTx) to() *common.Address    { return tx.To }
-func (tx *DynamicFeeTx) isSystemTx() bool       { return false }
+func (tx *DynamicFeeTx) txType() byte                { return DynamicFeeTxType }
+func (tx *DynamicFeeTx) chainID() *big.Int           { return tx.ChainID }
+func (tx *DynamicFeeTx) accessList() AccessList      { return tx.AccessList }
+func (tx *DynamicFeeTx) data() []byte                { return tx.Data }
+func (tx *DynamicFeeTx) gas() uint64                 { return tx.Gas }
+func (tx *DynamicFeeTx) gasFeeCap() *big.Int         { return tx.GasFeeCap }
+func (tx *DynamicFeeTx) gasTipCap() *big.Int         { return tx.GasTipCap }
+func (tx *DynamicFeeTx) gasPrice() *big.Int          { return tx.GasFeeCap }
+func (tx *DynamicFeeTx) value() *big.Int             { return tx.Value }
+func (tx *DynamicFeeTx) nonce() uint64               { return tx.Nonce }
+func (tx *DynamicFeeTx) l1TxOrigin() *common.Address { return nil }
+func (tx *DynamicFeeTx) to() *common.Address         { return tx.To }
+func (tx *DynamicFeeTx) isSystemTx() bool            { return false }
 
 func (tx *DynamicFeeTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	if baseFee == nil {

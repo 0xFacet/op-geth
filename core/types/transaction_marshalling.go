@@ -170,7 +170,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.To = tx.To()
 		enc.SourceHash = &itx.SourceHash
-		enc.L1TxOrigin = &itx.L1TxOrigin
+		enc.L1TxOrigin = itx.L1TxOrigin
 		enc.From = &itx.From
 		if itx.Mint != nil {
 			enc.Mint = (*hexutil.Big)(itx.Mint)
@@ -469,10 +469,10 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'from' in transaction")
 		}
 		itx.From = *dec.From
-		if dec.L1TxOrigin == nil {
-			return errors.New("missing required field 'l1TxOrigin' in transaction")
+		// L1TxOrigin may be omitted or nil.
+		if dec.L1TxOrigin != nil {
+			itx.L1TxOrigin = dec.L1TxOrigin
 		}
-		itx.L1TxOrigin = *dec.L1TxOrigin
 		if dec.SourceHash == nil {
 			return errors.New("missing required field 'sourceHash' in transaction")
 		}

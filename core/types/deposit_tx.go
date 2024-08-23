@@ -29,8 +29,8 @@ const DepositTxType = 0x7E
 type DepositTx struct {
 	// SourceHash uniquely identifies the source of the deposit
 	SourceHash common.Hash
-	// L1TxOrigin is the address that the transaction is sent from.
-	L1TxOrigin common.Address
+	// L1TxOrigin is the address that originated the L1 transaction
+	L1TxOrigin *common.Address `rlp:"nil"`
 	// From is exposed through the types.Signer, not through TxData
 	From common.Address
 	// nil means contract creation
@@ -73,18 +73,19 @@ func (tx *DepositTx) copy() TxData {
 }
 
 // accessors for innerTx.
-func (tx *DepositTx) txType() byte           { return DepositTxType }
-func (tx *DepositTx) chainID() *big.Int      { return common.Big0 }
-func (tx *DepositTx) accessList() AccessList { return nil }
-func (tx *DepositTx) data() []byte           { return tx.Data }
-func (tx *DepositTx) gas() uint64            { return tx.Gas }
-func (tx *DepositTx) gasFeeCap() *big.Int    { return tx.GasFeeCap }
-func (tx *DepositTx) gasTipCap() *big.Int    { return new(big.Int) }
-func (tx *DepositTx) gasPrice() *big.Int     { return new(big.Int) }
-func (tx *DepositTx) value() *big.Int        { return tx.Value }
-func (tx *DepositTx) nonce() uint64          { return 0 }
-func (tx *DepositTx) to() *common.Address    { return tx.To }
-func (tx *DepositTx) isSystemTx() bool       { return tx.IsSystemTransaction }
+func (tx *DepositTx) txType() byte                { return DepositTxType }
+func (tx *DepositTx) chainID() *big.Int           { return common.Big0 }
+func (tx *DepositTx) accessList() AccessList      { return nil }
+func (tx *DepositTx) data() []byte                { return tx.Data }
+func (tx *DepositTx) gas() uint64                 { return tx.Gas }
+func (tx *DepositTx) gasFeeCap() *big.Int         { return tx.GasFeeCap }
+func (tx *DepositTx) gasTipCap() *big.Int         { return new(big.Int) }
+func (tx *DepositTx) gasPrice() *big.Int          { return new(big.Int) }
+func (tx *DepositTx) value() *big.Int             { return tx.Value }
+func (tx *DepositTx) nonce() uint64               { return 0 }
+func (tx *DepositTx) to() *common.Address         { return tx.To }
+func (tx *DepositTx) l1TxOrigin() *common.Address { return tx.L1TxOrigin }
+func (tx *DepositTx) isSystemTx() bool            { return tx.IsSystemTransaction }
 
 func (tx *DepositTx) effectiveGasPrice(dst *big.Int, baseFee *big.Int) *big.Int {
 	return dst.Set(baseFee)
