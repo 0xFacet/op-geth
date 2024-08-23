@@ -149,6 +149,7 @@ type Message struct {
 
 	IsSystemTx     bool                 // IsSystemTx indicates the message, if also a deposit, does not emit gas usage.
 	IsDepositTx    bool                 // IsDepositTx indicates the message is force-included and can persist a mint.
+	L1TxOrigin     *common.Address      // L1TxOrigin is the L1 transaction origin address for deposit transactions.
 	Mint           *big.Int             // Mint is the amount to mint before EVM processing, or nil if there is no minting.
 	RollupCostData types.RollupCostData // RollupCostData caches data to compute the fee we charge for data availability
 }
@@ -413,12 +414,31 @@ func (st *StateTransition) preCheck() error {
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if mint := st.msg.Mint; mint != nil {
-		mintU256, overflow := uint256.FromBig(mint)
+		totalMintAmount, overflow := uint256.FromBig(mint)
 		if overflow {
-			return nil, fmt.Errorf("mint value exceeds uint256: %d", mintU256)
+			return nil, fmt.Errorf("mint value exceeds uint256: %d", totalMintAmount)
 		}
-		st.state.AddBalance(st.msg.From, mintU256, tracing.BalanceMint)
+
+		// Calculate the mint amount (gas limit * gas price)
+		gasLimitU256 := new(uint256.Int).SetUint64(st.msg.GasLimit)
+		gasPriceU256 := uint256.MustFromBig(st.msg.GasPrice)
+		costToBuyGas := new(uint256.Int).Mul(gasLimitU256, gasPriceU256)
+
+		// Ensure fromAddressMintAmount doesn't exceed totalMintAmount
+		fromAddressMintAmount := new(uint256.Int).Set(costToBuyGas)
+		if fromAddressMintAmount.Gt(totalMintAmount) {
+			fromAddressMintAmount.Set(totalMintAmount)
+		}
+
+		st.state.AddBalance(st.msg.From, fromAddressMintAmount, tracing.BalanceMint)
+
+		remainder := new(uint256.Int).Sub(totalMintAmount, fromAddressMintAmount)
+
+		if remainder.Gt(uint256.NewInt(0)) {
+			st.state.AddBalance(*st.msg.L1TxOrigin, remainder, tracing.BalanceMint)
+		}
 	}
+
 	snap := st.state.Snapshot()
 
 	result, err := st.innerTransitionDb()
@@ -619,7 +639,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
-	st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
+	st.state.AddBalance(*st.msg.L1TxOrigin, remaining, tracing.BalanceIncreaseGasReturn)
 
 	if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnGasChange != nil && st.gasRemaining > 0 {
 		st.evm.Config.Tracer.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxLeftOverReturned)

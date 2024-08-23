@@ -29,6 +29,8 @@ const DepositTxType = 0x7E
 type DepositTx struct {
 	// SourceHash uniquely identifies the source of the deposit
 	SourceHash common.Hash
+	// L1TxOrigin is the address that the transaction is sent from.
+	L1TxOrigin common.Address
 	// From is exposed through the types.Signer, not through TxData
 	From common.Address
 	// nil means contract creation
@@ -51,6 +53,7 @@ type DepositTx struct {
 func (tx *DepositTx) copy() TxData {
 	cpy := &DepositTx{
 		SourceHash:          tx.SourceHash,
+		L1TxOrigin:          tx.L1TxOrigin,
 		From:                tx.From,
 		To:                  copyAddressPtr(tx.To),
 		Mint:                nil,

@@ -340,6 +340,15 @@ func (tx *Transaction) SourceHash() common.Hash {
 	return common.Hash{}
 }
 
+// L1TxOrigin returns the L1 transaction origin address for deposit transactions.
+// For non-deposit transactions, it returns nil.
+func (tx *Transaction) L1TxOrigin() *common.Address {
+	if dep, ok := tx.inner.(*DepositTx); ok {
+		return &dep.L1TxOrigin
+	}
+	return nil
+}
+
 // Mint returns the ETH to mint in the deposit tx.
 // This returns nil if there is nothing to mint, or if this is not a deposit tx.
 func (tx *Transaction) Mint() *big.Int {
