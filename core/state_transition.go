@@ -168,6 +168,7 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		AccessList:     tx.AccessList(),
 		IsSystemTx:     tx.IsSystemTx(),
 		IsDepositTx:    tx.IsDepositTx(),
+		L1TxOrigin:     tx.L1TxOrigin(),
 		Mint:           tx.Mint(),
 		RollupCostData: tx.RollupCostData(),
 
@@ -300,9 +301,7 @@ func (st *StateTransition) buyGas() error {
 
 func (st *StateTransition) preCheck() error {
 	if st.msg.IsDepositTx {
-		systemAddress := common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
-
-		if st.msg.From == systemAddress {
+		if st.msg.From == st.getSystemAddress() {
 			st.initialGas = st.msg.GasLimit
 			st.gasRemaining += st.msg.GasLimit
 
@@ -446,9 +445,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	snap := st.state.Snapshot()
 
 	result, err := st.innerTransitionDb()
-	// Failed deposits must still be included. Unless we cannot produce the block at all due to the gas limit.
+	// Failed deposits must still be included.
 	// On deposit failure, we rewind any state changes from after the minting, and increment the nonce.
-	if err != nil && err != ErrGasLimitReached && st.msg.IsDepositTx {
+	if err != nil && st.msg.IsDepositTx {
 		if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnEnter != nil {
 			st.evm.Config.Tracer.OnEnter(0, byte(vm.STOP), common.Address{}, common.Address{}, nil, 0, nil)
 		}
@@ -498,7 +497,7 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gasRemaining, gas)
 	}
 	if t := st.evm.Config.Tracer; t != nil && t.OnGasChange != nil {
-		if st.msg.IsDepositTx {
+		if st.msg.IsDepositTx && st.msg.From == st.getSystemAddress() {
 			t.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxIntrinsicGas)
 		} else {
 			t.OnGasChange(st.gasRemaining, st.gasRemaining-gas, tracing.GasChangeTxIntrinsicGas)
@@ -644,10 +643,16 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
 
-	if st.msg.L1TxOrigin != nil {
-		st.state.AddBalance(*st.msg.L1TxOrigin, remaining, tracing.BalanceIncreaseGasReturn)
-	} else {
-		st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
+	if st.msg.From != st.getSystemAddress() {
+		var refundAddress common.Address
+
+		if st.msg.L1TxOrigin != nil {
+			refundAddress = *st.msg.L1TxOrigin
+		} else {
+			refundAddress = st.msg.From
+		}
+
+		st.state.AddBalance(refundAddress, remaining, tracing.BalanceIncreaseGasReturn)
 	}
 
 	if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnGasChange != nil && st.gasRemaining > 0 {
@@ -669,4 +674,8 @@ func (st *StateTransition) gasUsed() uint64 {
 // blobGasUsed returns the amount of blob gas used by the message.
 func (st *StateTransition) blobGasUsed() uint64 {
 	return uint64(len(st.msg.BlobHashes) * params.BlobTxBlobGasPerBlob)
+}
+
+func (st *StateTransition) getSystemAddress() common.Address {
+	return common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
 }

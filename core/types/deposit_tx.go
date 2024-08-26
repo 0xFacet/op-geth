@@ -53,7 +53,7 @@ type DepositTx struct {
 func (tx *DepositTx) copy() TxData {
 	cpy := &DepositTx{
 		SourceHash:          tx.SourceHash,
-		L1TxOrigin:          tx.L1TxOrigin,
+		L1TxOrigin:          copyAddressPtr(tx.L1TxOrigin),
 		From:                tx.From,
 		To:                  copyAddressPtr(tx.To),
 		Mint:                nil,

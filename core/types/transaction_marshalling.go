@@ -170,7 +170,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.To = tx.To()
 		enc.SourceHash = &itx.SourceHash
-		enc.L1TxOrigin = itx.L1TxOrigin
+		enc.L1TxOrigin = tx.L1TxOrigin()
 		enc.From = &itx.From
 		if itx.Mint != nil {
 			enc.Mint = (*hexutil.Big)(itx.Mint)
