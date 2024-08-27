@@ -52,6 +52,7 @@ type txJSON struct {
 
 	// Deposit transaction fields
 	SourceHash *common.Hash    `json:"sourceHash,omitempty"`
+	L1TxOrigin *common.Address `json:"l1TxOrigin,omitempty"`
 	From       *common.Address `json:"from,omitempty"`
 	Mint       *hexutil.Big    `json:"mint,omitempty"`
 	IsSystemTx *bool           `json:"isSystemTx,omitempty"`
@@ -169,6 +170,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 		enc.Input = (*hexutil.Bytes)(&itx.Data)
 		enc.To = tx.To()
 		enc.SourceHash = &itx.SourceHash
+		enc.L1TxOrigin = tx.L1TxOrigin()
 		enc.From = &itx.From
 		if itx.Mint != nil {
 			enc.Mint = (*hexutil.Big)(itx.Mint)
@@ -467,6 +469,10 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 			return errors.New("missing required field 'from' in transaction")
 		}
 		itx.From = *dec.From
+		// L1TxOrigin may be omitted or nil.
+		if dec.L1TxOrigin != nil {
+			itx.L1TxOrigin = dec.L1TxOrigin
+		}
 		if dec.SourceHash == nil {
 			return errors.New("missing required field 'sourceHash' in transaction")
 		}

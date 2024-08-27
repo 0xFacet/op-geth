@@ -149,6 +149,7 @@ type Message struct {
 
 	IsSystemTx     bool                 // IsSystemTx indicates the message, if also a deposit, does not emit gas usage.
 	IsDepositTx    bool                 // IsDepositTx indicates the message is force-included and can persist a mint.
+	L1TxOrigin     *common.Address      // L1TxOrigin is the L1 transaction origin address for deposit transactions.
 	Mint           *big.Int             // Mint is the amount to mint before EVM processing, or nil if there is no minting.
 	RollupCostData types.RollupCostData // RollupCostData caches data to compute the fee we charge for data availability
 }
@@ -167,6 +168,7 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		AccessList:     tx.AccessList(),
 		IsSystemTx:     tx.IsSystemTx(),
 		IsDepositTx:    tx.IsDepositTx(),
+		L1TxOrigin:     tx.L1TxOrigin(),
 		Mint:           tx.Mint(),
 		RollupCostData: tx.RollupCostData(),
 
@@ -299,9 +301,7 @@ func (st *StateTransition) buyGas() error {
 
 func (st *StateTransition) preCheck() error {
 	if st.msg.IsDepositTx {
-		systemAddress := common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
-
-		if st.msg.From == systemAddress {
+		if st.msg.From == st.getSystemAddress() {
 			st.initialGas = st.msg.GasLimit
 			st.gasRemaining += st.msg.GasLimit
 
@@ -413,18 +413,41 @@ func (st *StateTransition) preCheck() error {
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if mint := st.msg.Mint; mint != nil {
-		mintU256, overflow := uint256.FromBig(mint)
+		totalMintAmount, overflow := uint256.FromBig(mint)
 		if overflow {
-			return nil, fmt.Errorf("mint value exceeds uint256: %d", mintU256)
+			return nil, fmt.Errorf("mint value exceeds uint256: %d", totalMintAmount)
 		}
-		st.state.AddBalance(st.msg.From, mintU256, tracing.BalanceMint)
+
+		// Calculate the mint amount (gas limit * gas price)
+		gasLimitU256 := new(uint256.Int).SetUint64(st.msg.GasLimit)
+		gasPriceU256 := uint256.MustFromBig(st.msg.GasPrice)
+		costToBuyGas := new(uint256.Int).Mul(gasLimitU256, gasPriceU256)
+
+		// Ensure fromAddressMintAmount doesn't exceed totalMintAmount
+		fromAddressMintAmount := new(uint256.Int).Set(costToBuyGas)
+		if fromAddressMintAmount.Gt(totalMintAmount) {
+			fromAddressMintAmount.Set(totalMintAmount)
+		}
+
+		st.state.AddBalance(st.msg.From, fromAddressMintAmount, tracing.BalanceMint)
+
+		remainder := new(uint256.Int).Sub(totalMintAmount, fromAddressMintAmount)
+
+		if remainder.Gt(uint256.NewInt(0)) {
+			if st.msg.L1TxOrigin != nil {
+				st.state.AddBalance(*st.msg.L1TxOrigin, remainder, tracing.BalanceMint)
+			} else {
+				st.state.AddBalance(st.msg.From, remainder, tracing.BalanceMint)
+			}
+		}
 	}
+
 	snap := st.state.Snapshot()
 
 	result, err := st.innerTransitionDb()
-	// Failed deposits must still be included. Unless we cannot produce the block at all due to the gas limit.
+	// Failed deposits must still be included.
 	// On deposit failure, we rewind any state changes from after the minting, and increment the nonce.
-	if err != nil && err != ErrGasLimitReached && st.msg.IsDepositTx {
+	if err != nil && st.msg.IsDepositTx {
 		if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnEnter != nil {
 			st.evm.Config.Tracer.OnEnter(0, byte(vm.STOP), common.Address{}, common.Address{}, nil, 0, nil)
 		}
@@ -474,7 +497,7 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gasRemaining, gas)
 	}
 	if t := st.evm.Config.Tracer; t != nil && t.OnGasChange != nil {
-		if st.msg.IsDepositTx {
+		if st.msg.IsDepositTx && st.msg.From == st.getSystemAddress() {
 			t.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxIntrinsicGas)
 		} else {
 			t.OnGasChange(st.gasRemaining, st.gasRemaining-gas, tracing.GasChangeTxIntrinsicGas)
@@ -619,7 +642,18 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
-	st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
+
+	if st.msg.From != st.getSystemAddress() {
+		var refundAddress common.Address
+
+		if st.msg.L1TxOrigin != nil {
+			refundAddress = *st.msg.L1TxOrigin
+		} else {
+			refundAddress = st.msg.From
+		}
+
+		st.state.AddBalance(refundAddress, remaining, tracing.BalanceIncreaseGasReturn)
+	}
 
 	if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnGasChange != nil && st.gasRemaining > 0 {
 		st.evm.Config.Tracer.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxLeftOverReturned)
@@ -640,4 +674,8 @@ func (st *StateTransition) gasUsed() uint64 {
 // blobGasUsed returns the amount of blob gas used by the message.
 func (st *StateTransition) blobGasUsed() uint64 {
 	return uint64(len(st.msg.BlobHashes) * params.BlobTxBlobGasPerBlob)
+}
+
+func (st *StateTransition) getSystemAddress() common.Address {
+	return common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
 }

@@ -90,6 +90,7 @@ type TxData interface {
 	value() *big.Int
 	nonce() uint64
 	to() *common.Address
+	l1TxOrigin() *common.Address
 	isSystemTx() bool
 
 	rawSignatureValues() (v, r, s *big.Int)
@@ -338,6 +339,12 @@ func (tx *Transaction) SourceHash() common.Hash {
 		return dep.SourceHash
 	}
 	return common.Hash{}
+}
+
+// L1TxOrigin returns the L1 transaction origin address for deposit transactions.
+// For non-deposit transactions, it returns nil.
+func (tx *Transaction) L1TxOrigin() *common.Address {
+	return copyAddressPtr(tx.inner.l1TxOrigin())
 }
 
 // Mint returns the ETH to mint in the deposit tx.
