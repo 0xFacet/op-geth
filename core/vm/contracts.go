@@ -261,6 +261,10 @@ func (c *sqrtWithFloatPrecision) RequiredGas(input []byte) uint64 {
 }
 
 func (c *sqrtWithFloatPrecision) Run(input []byte) ([]byte, error) {
+	if len(input) != 32 {
+		return nil, errors.New("input must be 32 bytes")
+	}
+
 	n := new(big.Int).SetBytes(input)
 	nFloat64, _ := new(big.Float).SetInt(n).Float64()
 	sqrtFloat64 := stdmath.Sqrt(nFloat64)
