@@ -49,12 +49,21 @@ def:
                 - "core/types/tx_dynamic_fee.go"
                 - "core/types/tx_legacy.go"
                 - "core/types/tx_blob.go"
+            - title: "EVM enhancements"
+              description: |
+                Apply L1 cost computation, and add EVM configuration for tooling and more:
+                - Disable bytecode size-limits (for large test/script contracts).
+                - Prank (solidity test terminology) the EVM-call message-sender.
+                - Override precompiles, to insert tooling precompiles and optimize precompile proving.
+              globs:
+                - "core/vm/evm.go"
+                - "core/vm/interpreter.go"
+                - "core/vm/gas_table.go"
             - title: "L1 cost computation"
               description: |
                 Transactions must pay an additional L1 cost based on the amount of rollup-data-gas they consume,
                 estimated based on gas-price-oracle information and encoded tx size."
               globs:
-                - "core/vm/evm.go"
                 - "core/evm.go"
                 - "core/types/rollup_cost.go"
                 - "core/state_processor.go"
@@ -117,7 +126,6 @@ def:
           description: ""
           globs:
             - "core/vm/contracts.go"
-            - "core/vm/interpreter.go"
             - "crypto/secp256r1/publickey.go"
             - "crypto/secp256r1/verifier.go"
     - title: "Chain Configuration"
@@ -202,6 +210,21 @@ def:
         - title: Generated TOML config update
           globs:
             - "eth/ethconfig/gen_config.go"
+    - title: "TrieDB PathDB-journal migration"
+      description: |
+        From version 1.13.15 to 1.14.0 upstream go-ethereum changed the PathDB journal version, without migration path.
+        For a better experience when updating op-geth, to not roll back any journaled stage changes,
+        op-geth implements backward-compatibility with the old journal version.
+        See upstream Geth PR 28940, and op-geth PR 368 for details.
+      globs:
+        - "triedb/pathdb/journal.go"
+    - title: "Single threaded execution"
+      description: |
+        The cannon fault proofs virtual machine does not support the creation of threads. To ensure compatibility, 
+        thread creation is avoided when only a single CPU is available.
+      globs:
+        - "core/state/workers.go"
+        - "trie/hasher.go"
     - title: "User API enhancements"
       description: "Encode the Deposit Tx properties, the L1 costs, and daisy-chain RPC-calls for pre-Bedrock historical data"
       sub:
