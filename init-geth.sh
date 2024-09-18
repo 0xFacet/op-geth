@@ -25,6 +25,31 @@ if [ ! -f "/$GENESIS_FILE" ]; then
   exit 1
 fi
 
+# Update the genesis file with the specified timestamp and mixHash if they are set
+if [ ! -z "$GENESIS_TIMESTAMP" ]; then
+  # Check if the timestamp is in hexadecimal format (starts with "0x")
+  if [[ "$GENESIS_TIMESTAMP" =~ ^0x ]]; then
+    echo "Using hexadecimal timestamp: $GENESIS_TIMESTAMP"
+    timestamp_hex="$GENESIS_TIMESTAMP"
+  else
+    # Convert base 10 timestamp to hexadecimal
+    echo "Converting base 10 timestamp to hexadecimal"
+    timestamp_hex=$(printf "0x%x" "$GENESIS_TIMESTAMP")
+  fi
+
+  echo "Updating timestamp in genesis file"
+  sed -i "s/\"timestamp\": \".*\"/\"timestamp\": \"$timestamp_hex\"/" "/$GENESIS_FILE"
+else
+  echo "GENESIS_TIMESTAMP environment variable is not set, using existing value in genesis file"
+fi
+
+if [ ! -z "$GENESIS_MIX_HASH" ]; then
+  echo "Updating mixHash in genesis file"
+  sed -i "s/\"mixHash\": \".*\"/\"mixHash\": \"$GENESIS_MIX_HASH\"/" "/$GENESIS_FILE"
+else
+  echo "GENESIS_MIX_HASH environment variable is not set, using existing value in genesis file"
+fi
+
 # Check if the data directory is empty
 if [ ! "$(ls -A /root/ethereum)" ]; then
   echo "Initializing new blockchain..."
