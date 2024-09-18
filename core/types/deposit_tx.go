@@ -59,7 +59,7 @@ func (tx *DepositTx) copy() TxData {
 		Mint:                nil,
 		Value:               new(big.Int),
 		Gas:                 tx.Gas,
-		GasFeeCap:           tx.GasFeeCap,
+		GasFeeCap:           new(big.Int),
 		IsSystemTransaction: tx.IsSystemTransaction,
 		Data:                common.CopyBytes(tx.Data),
 	}
@@ -68,6 +68,9 @@ func (tx *DepositTx) copy() TxData {
 	}
 	if tx.Value != nil {
 		cpy.Value.Set(tx.Value)
+	}
+	if tx.GasFeeCap != nil {
+		cpy.GasFeeCap.Set(tx.GasFeeCap)
 	}
 	return cpy
 }
