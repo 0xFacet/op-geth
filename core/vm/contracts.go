@@ -147,33 +147,35 @@ var PrecompiledContractsVerkle = PrecompiledContractsPrague
 // PrecompiledContractsFjord contains the default set of pre-compiled Ethereum
 // contracts used in the Fjord release.
 var PrecompiledContractsFjord = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}):          &ecrecover{},
-	common.BytesToAddress([]byte{2}):          &sha256hash{},
-	common.BytesToAddress([]byte{3}):          &ripemd160hash{},
-	common.BytesToAddress([]byte{4}):          &dataCopy{},
-	common.BytesToAddress([]byte{5}):          &bigModExp{eip2565: true},
-	common.BytesToAddress([]byte{6}):          &bn256AddIstanbul{},
-	common.BytesToAddress([]byte{7}):          &bn256ScalarMulIstanbul{},
-	common.BytesToAddress([]byte{8}):          &bn256PairingIstanbul{},
-	common.BytesToAddress([]byte{9}):          &blake2F{},
-	common.BytesToAddress([]byte{0x0a}):       &kzgPointEvaluation{},
-	common.BytesToAddress([]byte{0x01, 0x00}): &p256Verify{},
+	common.BytesToAddress([]byte{1}):                                  &ecrecover{},
+	common.BytesToAddress([]byte{2}):                                  &sha256hash{},
+	common.BytesToAddress([]byte{3}):                                  &ripemd160hash{},
+	common.BytesToAddress([]byte{4}):                                  &dataCopy{},
+	common.BytesToAddress([]byte{5}):                                  &bigModExp{eip2565: true},
+	common.BytesToAddress([]byte{6}):                                  &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}):                                  &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}):                                  &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{9}):                                  &blake2F{},
+	common.BytesToAddress([]byte{0x0a}):                               &kzgPointEvaluation{},
+	common.BytesToAddress([]byte{0x01, 0x00}):                         &p256Verify{},
+	common.HexToAddress("0x00050db43a2b7dace8d24c481e0fe45459a09000"): &sqrtWithFloatPrecision{},
 }
 
 // PrecompiledContractsGranite contains the default set of pre-compiled Ethereum
 // contracts used in the Granite release.
 var PrecompiledContractsGranite = map[common.Address]PrecompiledContract{
-	common.BytesToAddress([]byte{1}):          &ecrecover{},
-	common.BytesToAddress([]byte{2}):          &sha256hash{},
-	common.BytesToAddress([]byte{3}):          &ripemd160hash{},
-	common.BytesToAddress([]byte{4}):          &dataCopy{},
-	common.BytesToAddress([]byte{5}):          &bigModExp{eip2565: true},
-	common.BytesToAddress([]byte{6}):          &bn256AddIstanbul{},
-	common.BytesToAddress([]byte{7}):          &bn256ScalarMulIstanbul{},
-	common.BytesToAddress([]byte{8}):          &bn256PairingGranite{},
-	common.BytesToAddress([]byte{9}):          &blake2F{},
-	common.BytesToAddress([]byte{0x0a}):       &kzgPointEvaluation{},
-	common.BytesToAddress([]byte{0x01, 0x00}): &p256Verify{},
+	common.BytesToAddress([]byte{1}):                                  &ecrecover{},
+	common.BytesToAddress([]byte{2}):                                  &sha256hash{},
+	common.BytesToAddress([]byte{3}):                                  &ripemd160hash{},
+	common.BytesToAddress([]byte{4}):                                  &dataCopy{},
+	common.BytesToAddress([]byte{5}):                                  &bigModExp{eip2565: true},
+	common.BytesToAddress([]byte{6}):                                  &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}):                                  &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}):                                  &bn256PairingGranite{},
+	common.BytesToAddress([]byte{9}):                                  &blake2F{},
+	common.BytesToAddress([]byte{0x0a}):                               &kzgPointEvaluation{},
+	common.BytesToAddress([]byte{0x01, 0x00}):                         &p256Verify{},
+	common.HexToAddress("0x00050db43a2b7dace8d24c481e0fe45459a09000"): &sqrtWithFloatPrecision{},
 }
 
 var (
@@ -257,7 +259,7 @@ func RunPrecompiledContract(p PrecompiledContract, input []byte, suppliedGas uin
 type sqrtWithFloatPrecision struct{}
 
 func (c *sqrtWithFloatPrecision) RequiredGas(input []byte) uint64 {
-	return 20000
+	return 50000
 }
 
 func (c *sqrtWithFloatPrecision) Run(input []byte) ([]byte, error) {
