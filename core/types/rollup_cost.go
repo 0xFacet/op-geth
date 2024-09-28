@@ -311,7 +311,7 @@ func extractL1GasParamsPreEcotone(config *params.ChainConfig, time uint64, data 
 // extractL1GasParamsPostEcotone extracts the gas parameters necessary to compute gas from L1 attribute
 // info calldata after the Ecotone upgrade, but not for the very first Ecotone block.
 func extractL1GasParamsPostEcotone(data []byte) (gasParams, error) {
-	if len(data) != 164+32*2 {
+	if len(data) != 164 {
 		return gasParams{}, fmt.Errorf("expected 164 L1 info bytes, got %d", len(data))
 	}
 	// data layout assumed for Ecotone:
