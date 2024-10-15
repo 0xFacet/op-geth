@@ -114,7 +114,11 @@ func Keccak512(data ...[]byte) []byte {
 
 // CreateAddress creates an ethereum address given the bytes and the nonce
 func CreateAddress(b common.Address, nonce uint64) common.Address {
-	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
+	// Convert the address to a big.Int, which will drop leading zeros
+	addressInt := new(big.Int).SetBytes(b.Bytes())
+	
+	data, _ := rlp.EncodeToBytes([]interface{}{addressInt, nonce, "facet"})
+	
 	return common.BytesToAddress(Keccak256(data)[12:])
 }
 
