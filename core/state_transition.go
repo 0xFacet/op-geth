@@ -257,7 +257,7 @@ func (st *StateTransition) buyGas() error {
 		}
 	}
 	balanceCheck := new(big.Int).Set(mgval)
-	if st.msg.GasFeeCap != nil {
+	if st.msg.GasFeeCap != nil && !st.msg.IsDepositTx {
 		balanceCheck.SetUint64(st.msg.GasLimit)
 		balanceCheck = balanceCheck.Mul(balanceCheck, st.msg.GasFeeCap)
 	}
