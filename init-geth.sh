@@ -65,6 +65,7 @@ exec geth \
   --http.addr "0.0.0.0" \
   --http.api "eth,net,web3,debug" \
   --http.vhosts="*" \
+  --http.corsdomain="*" \
   --authrpc.addr "0.0.0.0" \
   --authrpc.vhosts="*" \
   --authrpc.port 8551 \
