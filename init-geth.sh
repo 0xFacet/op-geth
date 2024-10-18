@@ -74,6 +74,7 @@ exec geth \
   --cache 25000 \
   --cache.preimages \
   --maxpeers 0 \
+  --rpc.gascap 500000000 \
   --syncmode full \
   --gcmode archive \
   --rollup.disabletxpoolgossip \
