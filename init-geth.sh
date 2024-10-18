@@ -58,6 +58,9 @@ else
   echo "Blockchain already initialized."
 fi
 
+# Set default RPC gas cap if not provided
+RPC_GAS_CAP=${RPC_GAS_CAP:-500000000}
+
 # Start geth in server mode without interactive console
 exec geth \
   --datadir /root/ethereum \
@@ -74,7 +77,7 @@ exec geth \
   --cache 25000 \
   --cache.preimages \
   --maxpeers 0 \
-  --rpc.gascap 500000000 \
+  --rpc.gascap $RPC_GAS_CAP \
   --syncmode full \
   --gcmode archive \
   --rollup.disabletxpoolgossip \
