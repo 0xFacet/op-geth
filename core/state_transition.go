@@ -301,8 +301,15 @@ func (st *StateTransition) buyGas() error {
 }
 
 func (st *StateTransition) preCheck() error {
+	if st.msg.IsDepositTx &&
+		st.msg.From != params.OptimismSystemAddress &&
+		st.msg.GasLimit > params.MaxTransactionGasLimit {
+		return fmt.Errorf("%w: gas limit %d exceeds maximum allowed %d",
+			ErrTxGasLimitTooHigh, st.msg.GasLimit, params.MaxTransactionGasLimit)
+	}
+
 	if st.msg.IsDepositTx {
-		if st.msg.From == st.getSystemAddress() {
+		if st.msg.From == params.OptimismSystemAddress {
 			st.initialGas = st.msg.GasLimit
 			st.gasRemaining += st.msg.GasLimit
 
@@ -501,7 +508,7 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gasRemaining, gas)
 	}
 	if t := st.evm.Config.Tracer; t != nil && t.OnGasChange != nil {
-		if st.msg.IsDepositTx && st.msg.From == st.getSystemAddress() {
+		if st.msg.IsDepositTx && st.msg.From == params.OptimismSystemAddress {
 			t.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxIntrinsicGas)
 		} else {
 			t.OnGasChange(st.gasRemaining, st.gasRemaining-gas, tracing.GasChangeTxIntrinsicGas)
@@ -647,7 +654,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
 
-	if st.msg.From != st.getSystemAddress() {
+	if st.msg.From != params.OptimismSystemAddress {
 		var refundAddress common.Address
 
 		if st.msg.L1TxOrigin != nil {
@@ -678,8 +685,4 @@ func (st *StateTransition) gasUsed() uint64 {
 // blobGasUsed returns the amount of blob gas used by the message.
 func (st *StateTransition) blobGasUsed() uint64 {
 	return uint64(len(st.msg.BlobHashes) * params.BlobTxBlobGasPerBlob)
-}
-
-func (st *StateTransition) getSystemAddress() common.Address {
-	return common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
 }
