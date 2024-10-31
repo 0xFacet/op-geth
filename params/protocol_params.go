@@ -22,11 +22,18 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const (
+	// ... existing gas constants ...
+	MaxTransactionGasLimit = 50_000_000 // Maximum gas limit allowed for a single transaction
+)
+
 var (
 	// The base fee portion of the transaction fee accumulates at this predeploy
 	OptimismBaseFeeRecipient = common.HexToAddress("0x4200000000000000000000000000000000000019")
 	// The L1 portion of the transaction fee accumulates at this predeploy
 	OptimismL1FeeRecipient = common.HexToAddress("0x420000000000000000000000000000000000001A")
+	// The system address is used for system transactions
+	OptimismSystemAddress = common.HexToAddress("0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001")
 )
 
 const (
