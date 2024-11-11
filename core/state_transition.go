@@ -449,8 +449,38 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// Failed deposits must still be included.
 	// On deposit failure, we rewind any state changes from after the minting, and increment the nonce.
 	if err != nil && st.msg.IsDepositTx {
-		if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnEnter != nil {
-			st.evm.Config.Tracer.OnEnter(0, byte(vm.STOP), common.Address{}, common.Address{}, nil, 0, nil)
+		if st.evm.Config.Tracer != nil {
+			// Determine if this is a contract creation or a call
+			var typ byte
+			var to common.Address
+			if st.msg.To == nil {
+				typ = byte(vm.CREATE)
+			} else {
+				typ = byte(vm.CALL)
+				to = *st.msg.To
+			}
+
+			if st.evm.Config.Tracer.OnEnter != nil {
+				st.evm.Config.Tracer.OnEnter(
+					0,               // depth
+					typ,             // CREATE or CALL
+					st.msg.From,     // from
+					to,              // to (zero address for CREATE)
+					st.msg.Data,     // input
+					st.gasRemaining, // gas
+					st.msg.Value,    // value
+				)
+			}
+
+			if st.evm.Config.Tracer.OnExit != nil {
+				st.evm.Config.Tracer.OnExit(
+					0,            // depth
+					nil,          // output
+					st.gasUsed(), // gasUsed
+					err,          // err
+					true,         // reverted
+				)
+			}
 		}
 
 		st.state.RevertToSnapshot(snap)
@@ -461,7 +491,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 		result = &ExecutionResult{
 			UsedGas:    st.gasUsed(),
-			Err:        fmt.Errorf("failed deposit: %w", err),
+			Err:        err,
 			ReturnData: nil,
 		}
 		err = nil
