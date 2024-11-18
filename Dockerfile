@@ -23,7 +23,8 @@ RUN apk add --no-cache ca-certificates
 COPY --from=builder /go-ethereum/build/bin/geth /usr/local/bin/
 
 # Copy the genesis.json file into the container
-COPY facet-chain/*.json /
+COPY facet-chain/*.json.gz /
+RUN cd / && gunzip *.json.gz
 
 # Copy the init-geth.sh script into the container
 COPY init-geth.sh /init-geth.sh

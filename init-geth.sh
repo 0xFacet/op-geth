@@ -81,5 +81,6 @@ exec geth \
   --syncmode full \
   --gcmode archive \
   --rollup.disabletxpoolgossip \
+  --rollup.enabletxpooladmission=false \
   --history.state 0 \
   --history.transactions 0

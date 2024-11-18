@@ -53,3 +53,6 @@ profile.cov
 logs/
 
 tests/spec-tests/
+
+facet-chain/*.json
+!facet-chain/*.json.gz
