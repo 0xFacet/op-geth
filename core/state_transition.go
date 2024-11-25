@@ -150,7 +150,6 @@ type Message struct {
 
 	IsSystemTx     bool                 // IsSystemTx indicates the message, if also a deposit, does not emit gas usage.
 	IsDepositTx    bool                 // IsDepositTx indicates the message is force-included and can persist a mint.
-	L1TxOrigin     *common.Address      // L1TxOrigin is the L1 transaction origin address for deposit transactions.
 	Mint           *big.Int             // Mint is the amount to mint before EVM processing, or nil if there is no minting.
 	RollupCostData types.RollupCostData // RollupCostData caches data to compute the fee we charge for data availability
 }
@@ -169,7 +168,6 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 		AccessList:     tx.AccessList(),
 		IsSystemTx:     tx.IsSystemTx(),
 		IsDepositTx:    tx.IsDepositTx(),
-		L1TxOrigin:     tx.L1TxOrigin(),
 		Mint:           tx.Mint(),
 		RollupCostData: tx.RollupCostData(),
 
@@ -179,6 +177,10 @@ func TransactionToMessage(tx *types.Transaction, s types.Signer, baseFee *big.In
 	}
 	// If baseFee provided, set gasPrice to effectiveGasPrice.
 	if baseFee != nil {
+		if msg.IsDepositTx {
+			msg.GasFeeCap = baseFee
+		}
+
 		msg.GasPrice = cmath.BigMin(msg.GasPrice.Add(msg.GasTipCap, baseFee), msg.GasFeeCap)
 	}
 	var err error
@@ -414,33 +416,11 @@ func (st *StateTransition) preCheck() error {
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if mint := st.msg.Mint; mint != nil {
-		totalMintAmount, overflow := uint256.FromBig(mint)
+		mintU256, overflow := uint256.FromBig(mint)
 		if overflow {
-			return nil, fmt.Errorf("mint value exceeds uint256: %d", totalMintAmount)
+			return nil, fmt.Errorf("mint value exceeds uint256: %d", mintU256)
 		}
-
-		// Calculate the mint amount (gas limit * gas price)
-		gasLimitU256 := new(uint256.Int).SetUint64(st.msg.GasLimit)
-		gasPriceU256 := uint256.MustFromBig(st.msg.GasPrice)
-		costToBuyGas := new(uint256.Int).Mul(gasLimitU256, gasPriceU256)
-
-		// Ensure fromAddressMintAmount doesn't exceed totalMintAmount
-		fromAddressMintAmount := new(uint256.Int).Set(costToBuyGas)
-		if fromAddressMintAmount.Gt(totalMintAmount) {
-			fromAddressMintAmount.Set(totalMintAmount)
-		}
-
-		st.state.AddBalance(st.msg.From, fromAddressMintAmount, tracing.BalanceMint)
-
-		remainder := new(uint256.Int).Sub(totalMintAmount, fromAddressMintAmount)
-
-		if remainder.Gt(uint256.NewInt(0)) {
-			if st.msg.L1TxOrigin != nil {
-				st.state.AddBalance(*st.msg.L1TxOrigin, remainder, tracing.BalanceMint)
-			} else {
-				st.state.AddBalance(st.msg.From, remainder, tracing.BalanceMint)
-			}
-		}
+		st.state.AddBalance(st.msg.From, mintU256, tracing.BalanceMint)
 	}
 
 	snap := st.state.Snapshot()
@@ -678,15 +658,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
 
 	if st.msg.From != st.getSystemAddress() {
-		var refundAddress common.Address
-
-		if st.msg.L1TxOrigin != nil {
-			refundAddress = *st.msg.L1TxOrigin
-		} else {
-			refundAddress = st.msg.From
-		}
-
-		st.state.AddBalance(refundAddress, remaining, tracing.BalanceIncreaseGasReturn)
+		st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
 	}
 
 	if st.evm.Config.Tracer != nil && st.evm.Config.Tracer.OnGasChange != nil && st.gasRemaining > 0 {
