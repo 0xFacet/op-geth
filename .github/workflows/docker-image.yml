@@ -2,9 +2,11 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "facet" ]
+    branches: 
+      - facet
   pull_request:
-    branches: [ "facet" ]
+    branches: 
+      - facet
 
 jobs:
   build:
