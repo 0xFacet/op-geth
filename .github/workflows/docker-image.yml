@@ -2,9 +2,11 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "facet" ]
+    branches: [ "v*", "facet" ]
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ "facet" ]
+    branches: [ "v*", "facet" ]
 
 jobs:
   build:
@@ -23,12 +25,20 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
         
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ghcr.io/0xfacet/facet-geth
+        tags: |
+          type=ref,event=branch  # Creates tags for branches (v1.0.0, main)
+          type=sha,format=short  # Creates short SHA tags
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}  # Only tag latest from main branch
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
-        tags: |
-          ghcr.io/0xfacet/facet-geth:latest
-          ghcr.io/0xfacet/facet-geth:facet
-          ghcr.io/0xfacet/facet-geth:${{ github.sha }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
