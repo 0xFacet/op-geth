@@ -1476,10 +1476,9 @@ type RPCTransaction struct {
 	YParity             *hexutil.Uint64   `json:"yParity,omitempty"`
 
 	// deposit-tx only
-	SourceHash *common.Hash    `json:"sourceHash,omitempty"`
-	L1TxOrigin *common.Address `json:"l1TxOrigin,omitempty"`
-	Mint       *hexutil.Big    `json:"mint,omitempty"`
-	IsSystemTx *bool           `json:"isSystemTx,omitempty"`
+	SourceHash *common.Hash `json:"sourceHash,omitempty"`
+	Mint       *hexutil.Big `json:"mint,omitempty"`
+	IsSystemTx *bool        `json:"isSystemTx,omitempty"`
 	// deposit-tx post-Canyon only
 	DepositReceiptVersion *hexutil.Uint64 `json:"depositReceiptVersion,omitempty"`
 }
@@ -1515,7 +1514,6 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		srcHash := tx.SourceHash()
 		isSystemTx := tx.IsSystemTx()
 		result.SourceHash = &srcHash
-		result.L1TxOrigin = tx.L1TxOrigin()
 		if isSystemTx {
 			// Only include IsSystemTx when true
 			result.IsSystemTx = &isSystemTx
